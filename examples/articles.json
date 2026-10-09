@@ -1,0 +1,26 @@
+[
+  {
+    "Entity": "Currency",
+    "Content": "A currency[a] is a standardization of money in any form, in use or circulation as a medium of exchange, for example banknotes and coins.[1][2] A more general definition is that a currency is a system of money in common use within a specific environment over time, especially for people in a nation state.[3] Under this definition, the British Pound sterling (£), euros (€), Japanese yen (¥), and U.S. dollars (US$) are examples of (government-issued) fiat currencies. Currencies may act as stores of value and be traded between nations in foreign exchange markets, which determine the relative values of the different currencies.[4] Currencies in this sense are either chosen by users or decreed by governments, and each type has limited boundaries of acceptance; i.e., legal tender laws may require a particular unit of account for payments to government agencies.",
+    "Source": "wiki",
+    "URL": "https://en.wikipedia.org/wiki/Currency",
+    "ExampleNote": "Verbatim excerpt from repository all_output.txt at 081873b; response manually prepared for demonstration, not a live LLM response.",
+    "ExampleResponse": "Summary:\nCurrency is money in circulation used as a medium of exchange. It may also store value and be traded in foreign exchange markets.\nRelationships:\n(currency)-[acts_as]->(medium_of_exchange)\n(currency)-[may_act_as]->(store_of_value)\n(currency)-[traded_in]->(foreign_exchange_market)"
+  },
+  {
+    "Entity": "Interest_rate",
+    "Content": "An interest rate is the amount of interest due per period, as a proportion of the amount lent, deposited, or borrowed (called the principal sum). The total interest on an amount lent or borrowed depends on the principal sum, the interest rate, the compounding frequency, and the length of time over which it is lent, deposited, or borrowed.",
+    "Source": "wiki",
+    "URL": "https://en.wikipedia.org/wiki/Interest_rate",
+    "ExampleNote": "Verbatim excerpt from repository all_output.txt at 081873b; response manually prepared for demonstration, not a live LLM response.",
+    "ExampleResponse": "Summary:\nAn interest rate expresses interest due per period relative to principal. Total interest depends on principal, the rate, compounding frequency and the duration of borrowing.\nRelationships:\n(total_interest)-[depends_on]->(principal)\n(total_interest)-[depends_on]->(interest_rate)\n(total_interest)-[depends_on]->(compounding_frequency)"
+  },
+  {
+    "Entity": "Annual_percentage_rate",
+    "Content": "The term annual percentage rate of charge (APR),[1][2] corresponding sometimes to a nominal APR and sometimes to an effective APR (EAPR),[3] is the interest rate for a whole year (annualized), rather than just a monthly fee/rate, as applied on a loan, mortgage loan, credit card,[4] etc. It is a finance charge expressed as an annual rate.[5][6] Those terms have formal, legal definitions in some countries or legal jurisdictions, but in the United States:[3]",
+    "Source": "wiki",
+    "URL": "https://en.wikipedia.org/wiki/Annual_percentage_rate",
+    "ExampleNote": "Verbatim excerpt from repository all_output.txt at 081873b; response manually prepared for demonstration, not a live LLM response.",
+    "ExampleResponse": "Summary:\nAPR expresses a finance charge as an annual rate for borrowing such as loans, mortgages and credit cards.\nRelationships:\n(annual_percentage_rate)-[expresses]->(annual_finance_charge)\n(annual_percentage_rate)-[applies_to]->(loan)\n(annual_percentage_rate)-[applies_to]->(credit_card)"
+  }
+]

@@ -1,0 +1,10 @@
+cluster_id,relations
+0,total_interest depends_on principal
+0,total_interest depends_on interest_rate
+0,total_interest depends_on compounding_frequency
+1,annual_percentage_rate expresses annual_finance_charge
+1,annual_percentage_rate applies_to loan
+1,annual_percentage_rate applies_to credit_card
+2,currency acts_as medium_of_exchange
+2,currency may_act_as store_of_value
+2,currency traded_in foreign_exchange_market

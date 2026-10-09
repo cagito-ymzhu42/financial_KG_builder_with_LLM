@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Financial KG · Knowledge Explorer</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%2319453d'/%3E%3Ctext x='7' y='28' fill='white' font-size='23'%3EK%3C/text%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a class="brand" href="./" aria-label="Financial KG home"
+        ><span class="brand-mark">K<span>•</span></span
+        ><span>FINANCIAL<span class="brand-sub">KNOWLEDGE GRAPH</span></span></a
+      >
+      <div class="nav-label">WORKSPACE</div>
+      <nav aria-label="Main navigation">
+        <button
+          data-view="overview"
+          class="nav-item active"
+          aria-current="page"
+        >
+          <span>◈</span>Overview<span class="nav-arrow">↗</span>
+        </button>
+        <button data-view="articles" class="nav-item">
+          <span>▤</span>Source articles
+        </button>
+        <button data-view="relations" class="nav-item">
+          <span>⇄</span>Relationships
+        </button>
+      </nav>
+      <div class="sidebar-note">
+        <div class="tiny-label">FROM TEXT TO CONNECTIONS</div>
+        <p>Find the connections<br />behind the concepts.</p>
+        <div class="mini-network" aria-hidden="true">○ ── ● ── ○</div>
+        <span>Extract. Connect. Explore.</span>
+      </div>
+      <div class="sidebar-footer">
+        <span class="status-dot"></span>Local workspace<span>v1.1</span>
+      </div>
+    </aside>
+    <main>
+      <header class="topbar">
+        <span
+          >Research workspace <span class="slash">/</span>
+          <strong id="breadcrumb">Overview</strong></span
+        ><a href="../readme.md" target="_blank" rel="noopener"
+          >Documentation ↗</a
+        >
+      </header>
+      <section class="page-heading">
+        <div>
+          <div class="eyebrow">FINANCIAL KNOWLEDGE EXPLORER</div>
+          <h1 id="page-title">Financial knowledge, connected<span>.</span></h1>
+          <p id="page-subtitle">
+            Explore entities, trace sources, and see how financial concepts
+            connect.
+          </p>
+        </div>
+        <div class="heading-actions">
+          <label class="sr-only" for="dataset">Dataset</label
+          ><select id="dataset">
+            <option value="example">Example dataset</option>
+            <option value="results">Local results</option></select
+          ><a
+            class="primary-button"
+            id="export"
+            href="../examples/expected/relations.json"
+            target="_blank"
+            rel="noopener"
+            >View JSON ↗</a
+          >
+        </div>
+      </section>
+      <div class="notice" id="notice" role="status">
+        <span>ⓘ</span><span>Loading dataset…</span>
+      </div>
+      <div id="error" class="error" role="alert" hidden></div>
+      <section class="stats" aria-label="Dataset overview">
+        <div class="stat">
+          <span>Source articles <small>01</small></span
+          ><strong id="article-count">—</strong>
+          <p>The source of each connection</p>
+        </div>
+        <div class="stat">
+          <span>Unique entities <small>02</small></span
+          ><strong id="entity-count">—</strong>
+          <p>Distinct names across articles</p>
+        </div>
+        <div class="stat">
+          <span>Relationships <small>03</small></span
+          ><strong id="relation-count">—</strong>
+          <p>Connecting financial concepts</p>
+        </div>
+        <div class="stat">
+          <span>Clusters <small>04</small></span
+          ><strong id="cluster-count">—</strong>
+          <p>TF-IDF · KMeans</p>
+        </div>
+      </section>
+      <div class="pipeline">
+        <span class="tiny-label">PIPELINE</span
+        ><span><b>01</b> Source text</span><i>→</i
+        ><span><b>02</b> LLM extraction</span><i>→</i
+        ><span><b>03</b> Knowledge graph</span><i>→</i
+        ><span><b>04</b> Clusters</span
+        ><span class="pipeline-end">Original pipeline · Modular code</span>
+      </div>
+      <section id="overview-view" class="view">
+        <div class="graph-layout">
+          <section class="card graph-card">
+            <div class="card-heading">
+              <div>
+                <h2>
+                  Relation network
+                  <span class="subtle">/ Explore connections</span>
+                </h2>
+                <p>Select an entity to explore its connections and sources.</p>
+              </div>
+              <button id="reset" class="text-button">Reset view ↺</button>
+            </div>
+            <div class="graph-toolbar">
+              <div
+                id="cluster-filters"
+                class="chips"
+                aria-label="Filter by cluster"
+              ></div>
+              <span id="graph-count" class="subtle"></span>
+            </div>
+            <div class="graph-scroll">
+              <svg
+                id="graph"
+                viewBox="0 0 1000 460"
+                aria-label="Financial entity relationship network"
+              ></svg>
+            </div>
+            <div class="graph-footer">
+              <span
+                ><i class="legend-line"></i>Arrows indicate relationship
+                direction</span
+              ><span>Node size reflects connection count</span>
+            </div>
+          </section>
+          <aside
+            class="card inspector"
+            id="inspector"
+            aria-live="polite"
+          ></aside>
+        </div>
+        <section class="card overview-bottom">
+          <div>
+            <span class="eyebrow">EXPLORE THE SOURCE</span>
+            <h2>Every connection starts with a source.</h2>
+            <p>
+              Explore the original text, its summary, and the relationships
+              between them.
+            </p>
+          </div>
+          <button class="secondary-button" data-open-articles>
+            Browse source articles ↗
+          </button>
+        </section>
+      </section>
+      <section id="articles-view" class="view" hidden>
+        <div class="article-layout">
+          <section class="card article-menu">
+            <div class="card-heading">
+              <h2>Source articles</h2>
+              <span class="subtle">SOURCE LIBRARY</span>
+            </div>
+            <div id="article-list"></div>
+          </section>
+          <article class="card article-detail" id="article-detail"></article>
+        </div>
+      </section>
+      <section id="relations-view" class="view" hidden>
+        <section class="card">
+          <div class="card-heading relation-heading">
+            <div>
+              <h2>
+                Relationships <span class="subtle">/ Relationship triples</span>
+              </h2>
+              <p>
+                Original entity names and relationship types from the dataset.
+              </p>
+            </div>
+            <label class="search-box"
+              ><span>⌕</span
+              ><input
+                id="search"
+                placeholder="Search entities or relationships…"
+                aria-label="Search entities or relationships"
+            /></label>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Source entity</th>
+                  <th>Relationship</th>
+                  <th>Target entity</th>
+                  <th>Cluster</th>
+                  <th>Source articles</th>
+                </tr>
+              </thead>
+              <tbody id="relation-rows"></tbody>
+            </table>
+          </div>
+          <div class="table-footer" id="table-count" aria-live="polite"></div>
+        </section>
+      </section>
+      <footer class="page-footer">
+        <span
+          >FINANCIAL KG <span class="slash">/</span> From text to structured
+          knowledge</span
+        ><span>Built on the original project pipeline</span>
+      </footer>
+    </main>
+  </body>
+</html>
