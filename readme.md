@@ -1,72 +1,93 @@
 # Financial Knowledge Graph Builder with LLM
 
-沿用原项目的处理方式：**Wikipedia / Investopedia 爬取 → LLM 摘要和关系提取 → Neo4j 入库 → TF-IDF + KMeans 聚类**。
+**Turn financial articles into a connected, searchable knowledge graph.**
 
-这次以模块化重构为主。保留原三元组格式、图结构和聚类算法，没有引入新的提取方法、任务调度、审核门禁或服务框架。默认模型仍是 `gpt-3.5-turbo`；能否调用取决于你的服务与账户，可用 `--model` 指定支持 Chat Completions 及当前参数的模型。
+Financial Knowledge Graph Builder combines web extraction, LLM-based summarization and relationship extraction, Neo4j storage, and topic clustering in a Python pipeline. An interactive web explorer brings the results together: browse financial concepts, follow their relationships, and read the source articles behind them.
 
-## 前端展示与截图
+The project follows a practical path from text to structured knowledge:
 
-展示界面使用原生 HTML、CSS、JavaScript 和 SVG，直接读取 Python 已有导出文件，无需安装 Node 或前端构建工具，也没有新增后台服务或登录系统。
+```text
+Wikipedia / Investopedia
+         │
+         ▼
+   Article extraction
+         │
+         ▼
+ LLM summary + relationships
+         │
+         ▼
+   Parsed entity triples
+         │
+         ├──────────────► Neo4j knowledge graph
+         │
+         ▼
+   TF-IDF + KMeans
+         │
+         ▼
+ JSONL / JSON / CSV exports
+         │
+         ▼
+ Interactive web explorer
+```
 
-在项目根目录启动：
+![Financial knowledge graph explorer with entity connections, cluster filters, and source details](docs/screenshots/overview.jpg)
+
+## Project Background
+
+Financial knowledge is often explained in prose. An article about currency describes its role as a medium of exchange; a discussion of interest connects principal, interest rates, and compounding; an explanation of annual percentage rate links borrowing costs to loans and credit cards. These concepts are easier to explore when their relationships become explicit.
+
+This project turns those explanations into directed entity–relationship triples. Each article contributes a concise summary and a set of connections that can be stored in a graph database, grouped by vocabulary, and inspected alongside the source text.
+
+The result serves three complementary purposes:
+
+- **Knowledge exploration:** follow connections between financial concepts and discover related terminology.
+- **Text-to-graph experimentation:** examine how article content becomes a summary, a set of triples, and a graph.
+- **Data preparation:** produce structured files and Neo4j relationships for further querying and analysis.
+
+The implementation is organized around the original workflow: collect articles, extract relationships, build the graph, and cluster the resulting relationship text. Each stage has a dedicated module and a clear input/output boundary.
+
+## Core Features
+
+| Capability | Implementation | Result |
+|---|---|---|
+| Article collection | Source-specific Wikipedia and Investopedia extractors | Article text with its entity name, source type, and URL |
+| Summarization | An LLM prompt requests a summary of up to 128 words | A concise description attached to each article |
+| Relationship extraction | The same prompt requests directed financial concept pairs | `(entity1)-[relationship]->(entity2)` records |
+| Text parsing | Dedicated summary and relationship parsers | Python triples ready for storage and analysis |
+| Knowledge graph storage | Parameterized Neo4j `MERGE` queries | `Entity` nodes joined by typed `RELATION` edges |
+| Topic clustering | Count vectors, TF-IDF weighting, and KMeans | A cluster assignment for each relationship and a keyword for each cluster |
+| Visual exploration | HTML, CSS, JavaScript, and SVG | A linked graph, article reader, and searchable relationship table |
+| Reproducible examples | Archived article excerpts paired with curated responses | A runnable three-article demonstration with saved outputs |
+
+## Quick Start
+
+### 1. Get the project
+
+```bash
+git clone https://github.com/cagito-ymzhu42/financial_KG_builder_with_LLM.git
+cd financial_KG_builder_with_LLM
+```
+
+### 2. Open the web explorer
+
+The repository includes a complete example dataset. Serve the project directory with Python:
 
 ```bash
 python -m http.server 8000 --bind 127.0.0.1
 ```
 
-浏览器打开 **http://127.0.0.1:8000/web/**。默认读取已附带的 `examples/expected/`，不需要 API 密钥或 Neo4j。请通过 HTTP 打开，不要直接双击 HTML 文件。
+Open [http://127.0.0.1:8000/web/](http://127.0.0.1:8000/web/) and select **Example dataset**. The explorer loads the bundled files from `examples/expected/`.
 
-- **Overview（图谱概览）**：查看实体、关系、聚类数量；按聚类筛选，点击节点查看关联关系，再跳转对应文章。
-- **Source articles（文章与摘要）**：切换来源文章，对照摘要、正文和关系三元组。
-- **Relationships（关系明细）**：按实体名称或关系类型搜索，查看聚类和文章来源。
-- **Local results（本地运行结果）**：选择右上角数据集，读取 `results/all_output.jsonl`、`results/relation_clusters.csv`；“View JSON”打开同目录的 `relations.json`。缺少聚类文件时仍可展示关系。
+A useful first tour is:
 
-运行 Python 流程后，在页面切换到“Local results”即可。若自定义了输出目录，请将这三个输出文件放入 `results/`，或修改 `web/app.js` 中的数据目录。重新生成文件后切换数据集或刷新页面。页面不触发爬取、模型调用或数据库写入。图谱采用简单分组布局，适合浏览当前项目的小型数据集；表格保留全部关系。
+1. Select a cluster in **Overview** to focus the relationship network.
+2. Click an entity to inspect its incoming and outgoing connections.
+3. Follow its source article to read the summary and original excerpt.
+4. Open **Relationships** and search for `currency`, `depends_on`, or `annual percentage`.
 
-页面文案统一为英文。下面均为实际浏览器截图。示例含 3 篇真实历史文本、12 个实体、9 条人工整理的演示关系、3 个实际计算的聚类；不是在线模型实测截图。
+### 3. Set up the Python pipeline
 
-### 图谱概览
-
-![金融知识图谱总览：实体网络、聚类筛选和来源详情](docs/screenshots/overview.jpg)
-
-### 文章与摘要
-
-![Interest rate 的原文、示例摘要与关系三元组](docs/screenshots/articles.jpg)
-
-### 关系明细
-
-![可搜索的关系三元组及对应聚类和来源](docs/screenshots/relations.jpg)
-
-图片随仓库保存在 `docs/screenshots/`，以上使用 GitHub 支持的相对路径。提交 README 与图片目录后即可显示，无需图床。
-
-## 结构
-
-```text
-financial_KG_builder_with_LLM_v1.py  # 保留原启动入口
-financial_kg/
-  cli.py            # 命令行参数、环境变量和资源关闭
-  crawlers.py       # 原两个网站的爬取逻辑，统一返回 Content
-  extraction.py     # 模型调用、摘要和关系文本解析
-  graph.py          # 原 Entity / RELATION 模型及 Neo4j 操作
-  clustering.py     # 原词频、TF-IDF、KMeans 流程
-  pipeline.py       # 串联各阶段与文件输出
-examples/
-  articles.json     # 三条真实历史文章片段 + 人工整理的示例响应
-  data_sources.csv  # 对应的三个在线来源
-  expected/         # 已运行的离线示例输出
-  README.md         # 示例来源、运行方式和验证边界
-web/               # 前端页面、样式、交互和导出数据解析
-docs/screenshots/  # README 使用的实际界面截图
-tests/             # Python 回归测试及前端数据解析测试
-data_Sources.csv    # 原始 30 条输入来源，未修改
-all_output.txt      # 原仓库历史结果，未修改
-```
-
-两个爬虫都返回 `Entity` 和 `Content`；爬取入口补充 `Source` 和 `URL`。提取结果增加 `Summary`、`Relationships` 和 `RawAnswer`。仍使用普通字典，没有新增数据建模框架。旧历史文件中的 `Article` / `Soure` 不改写；新流程使用 `Content` / `Source`。
-
-## 安装
-
-Python 3.10+（本次在 Python 3.14 上验证）。在仓库目录执行：
+Use Python 3.10 or later:
 
 ```bash
 python -m venv .venv
@@ -74,82 +95,363 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-## 先运行三个离线示例
+On Windows PowerShell, activate the environment with:
 
-```bash
-python financial_KG_builder_with_LLM_v1.py --example
+```powershell
+.venv\Scripts\Activate.ps1
 ```
 
-该命令不需要密钥，不联网，不写 Neo4j。文章来自原仓库 `all_output.txt` 的真实历史片段；模型响应是人工按原格式整理的演示数据，**不是本次在线模型生成结果**。解析、文件导出和聚类实际执行，得到 3 篇文章、9 条关系。示例使用同一个 `run_pipeline`，只是用示例响应替代外部模型调用。
-
-也可运行：
+### 4. Run the bundled examples
 
 ```bash
-python -m financial_kg --example --clusters 3 --output-dir results/example
+python -m financial_kg --example --clusters 3
 ```
 
-## 在线运行
+This runs the relationship parser, file exports, and KMeans clustering using the included article excerpts and curated example responses. It processes **3 articles and 9 relationships** and writes the results to `results/`.
 
-通过环境变量配置，不再把密钥清空或写进代码。示例占位值请替换为你自己的配置；程序不自动读取 `.env`。
+In the web explorer, choose **Local results** to inspect the files generated by your run.
+
+The original script remains an equivalent command-line entry point:
 
 ```bash
-export OPENAI_API_KEY='你的密钥'
-export NEO4J_PASSWORD='你的数据库密码'
-export NEO4J_URI='bolt://localhost:8888'
-export NEO4J_USER='financial'
-python financial_KG_builder_with_LLM_v1.py
+python financial_KG_builder_with_LLM_v1.py --example --clusters 3
 ```
 
-默认数据库地址、用户名沿用旧脚本；请按自己的 Neo4j 实例修改。使用兼容接口时可设置 `OPENAI_BASE_URL`，模型可用 `OPENAI_MODEL` 或 `--model` 配置。SDK 调用更新为 `client.chat.completions.create`，参见 [OpenAI 官方 API 文档](https://developers.openai.com/api/reference/python/resources/chat/subresources/completions/methods/create)。
+## Example Dataset
 
-只尝试三个真实来源、暂不写数据库：
+The demonstration uses excerpts from three Wikipedia articles preserved in the repository's historical `all_output.txt`. Their curated summaries and relationship responses make the parsing and visualization stages easy to reproduce. Each example carries its source URL and an `ExampleNote` describing its provenance.
 
-```bash
-python -m financial_kg --sources examples/data_sources.csv --skip-neo4j --clusters 3
+| Source article | Example connection | Concept explored |
+|---|---|---|
+| [Currency](https://en.wikipedia.org/wiki/Currency) | `currency → acts_as → medium_of_exchange` | The functions of money |
+| [Interest rate](https://en.wikipedia.org/wiki/Interest_rate) | `total_interest → depends_on → principal` | Components of borrowing costs |
+| [Annual percentage rate](https://en.wikipedia.org/wiki/Annual_percentage_rate) | `annual_percentage_rate → applies_to → credit_card` | Annualized finance charges |
+
+The saved example outputs contain **3 articles, 12 distinct entity names, 9 relationships, and 3 computed clusters**. The corresponding input URLs are in [`examples/data_sources.csv`](examples/data_sources.csv), and the article excerpts and responses are in [`examples/articles.json`](examples/articles.json).
+
+## Interactive Frontend
+
+The frontend is an English-language research workspace built with native browser technologies. It reads the pipeline's exported files over HTTP, giving the Python workflow and the visual explorer a shared data interface.
+
+### Overview: explore the graph
+
+The overview combines dataset statistics with an interactive relationship network. Cluster filters narrow the visible connections. Selecting a node opens an entity inspector showing its relationships and the articles associated with them.
+
+Arrows indicate relationship direction, while node size reflects the number of connections in the current view. The SVG layout arranges connected components into visual groups; cluster colors come from the exported KMeans assignments.
+
+### Source articles: read the context
+
+The article reader connects structured data back to its text. Select an article to view its summary, original content, extracted triples, and source-page link. The bundled examples identify their curated summaries and archived excerpts directly in the interface.
+
+![Source article view showing the Interest rate summary, original excerpt, and relationships](docs/screenshots/articles.jpg)
+
+### Relationships: inspect the triples
+
+The relationship table lists source entities, relationship types, target entities, cluster IDs, and source articles. Search works with both original identifiers such as `annual_percentage_rate` and their displayed form, `annual percentage rate`.
+
+![Searchable relationship table with entity triples, cluster assignments, and source links](docs/screenshots/relations.jpg)
+
+### Connect the viewer to a run
+
+The dataset selector maps to two directories:
+
+| Selection | Directory | Purpose |
+|---|---|---|
+| **Example dataset** | `examples/expected/` | Explore the included demonstration |
+| **Local results** | `results/` | Explore a locally generated run |
+
+The viewer reads `all_output.jsonl` for articles and triples, then joins relationship text to cluster IDs from `relation_clusters.csv`. **View JSON** opens the selected dataset's `relations.json`.
+
+After running the pipeline, refresh the page or switch datasets to reload the files. For a custom output directory, copy the viewer's three input files into `results/` or adjust the dataset directory in `web/app.js`.
+
+The layout adapts to desktop and narrow screens, with scrollable graph and table areas for inspecting wider content.
+
+## Code Architecture
+
+```text
+.
+├── financial_KG_builder_with_LLM_v1.py   # Original command-line entry point
+├── financial_kg/
+│   ├── __init__.py
+│   ├── __main__.py                      # python -m financial_kg
+│   ├── cli.py                           # Arguments, configuration, client lifecycle
+│   ├── crawlers.py                      # Source loading and website extraction
+│   ├── extraction.py                    # LLM request and response parsing
+│   ├── graph.py                         # Neo4j graph operations
+│   ├── clustering.py                    # TF-IDF, KMeans, cluster exports
+│   └── pipeline.py                      # Stage orchestration and result exports
+├── web/
+│   ├── index.html                       # Page structure and navigation
+│   ├── styles.css                       # Layout, visual styling, responsive rules
+│   ├── app.js                           # Data loading, rendering, interactions
+│   └── model.mjs                        # Export parsing and graph data helpers
+├── examples/
+│   ├── articles.json                    # Archived excerpts and curated responses
+│   ├── data_sources.csv                 # URLs for the three example articles
+│   └── expected/                        # Saved demonstration results
+├── docs/screenshots/                    # Frontend screenshots used in this README
+├── tests/
+│   ├── test_builder.py                  # Python pipeline regression tests
+│   └── test_web.mjs                     # Frontend data-model tests
+├── data_Sources.csv                     # Source collection: 30 article URLs
+├── all_output.txt                       # Historical article and summary records
+├── cluster_topic.png                    # Historical clustering visualization
+├── relation_result.png                  # Historical graph visualization
+└── requirements.txt                     # Python dependencies
 ```
 
-其他参数：`--limit 3` 只处理前三条来源，`--delay 5` 设置爬取间隔，`--output-dir PATH` 指定输出目录。默认来源和输出位置相对于项目目录，不依赖启动时的工作目录。手动传入的相对路径则相对于当前工作目录。
+### Module responsibilities
 
-## 输出
+| Module | Main interface | Responsibility |
+|---|---|---|
+| `cli.py` | `main()` | Selects sources and execution mode, reads environment variables, and closes clients |
+| `crawlers.py` | `crawl_sources()` | Reads CSV entries and yields article dictionaries in source order |
+| `extraction.py` | `chatGPT_to_summary_relation()`, `parse_answer()` | Sends article text to the LLM and converts its reply into a summary and triples |
+| `graph.py` | `Neo4jHandler`, `store_relations_in_neo4j()` | Creates or matches graph entities and directed relationships |
+| `clustering.py` | `cluster_relations()`, `save_clusters()` | Builds feature vectors, assigns clusters, and exports results |
+| `pipeline.py` | `run_pipeline()` | Processes articles, saves results, writes graph data, and invokes clustering |
+| `web/model.mjs` | `buildDataset()`, `filterRelations()` | Converts pipeline files into the frontend's article, entity, and relationship model |
+| `web/app.js` | View rendering and event handlers | Links graph selection, article navigation, cluster filters, and search |
 
-| 文件 | 内容 |
-|---|---|
-| `all_output.jsonl` | 每篇文章、来源、摘要、关系和原始响应 |
-| `relations.json` | 汇总的 `[entity1, relation, entity2]` 三元组 |
-| `cluster_keywords.csv` | 每个聚类的首个关键词 |
-| `relation_clusters.csv` | 每条关系对应的聚类编号 |
+The pipeline receives an article iterable and an extraction callable. The live mode supplies an LLM-backed callable; the example mode supplies the included responses. Both paths use the same parsing, export, and clustering functions.
 
-默认写到 `results/`，同目录再次运行会覆盖这些文件。原仓库图片与 `all_output.txt` 是历史样例，不会由当前脚本更新。小样本会减少聚类数量；聚类编号仅是算法标签，不是经过人工标注的金融类别。
+## How the Pipeline Works
 
-Neo4j 结构仍为：
+### 1. Collect and normalize article text
+
+The input CSV has two columns:
+
+```csv
+source,URL
+wiki,https://en.wikipedia.org/wiki/Currency
+wiki,https://en.wikipedia.org/wiki/Interest_rate
+investopedia,https://www.investopedia.com/terms/i/investing.asp
+```
+
+`crawl_sources()` dispatches each row to the matching extractor:
+
+- **Wikipedia:** collects paragraphs from the page's `mw-parser-output` section.
+- **Investopedia:** extracts the article element, with content-container and paragraph fallbacks.
+
+Each result provides `Entity` and `Content`. The source loader adds `Source` and `URL`, giving downstream stages a consistent article format. Entity names are derived from the URL path, with URL decoding applied.
+
+### 2. Generate a summary and relationships
+
+The extraction module sends the article to a Chat Completions-compatible model. The prompt asks for a short summary and one relationship per line under explicit headings:
+
+```text
+Summary:
+Currency is money in circulation used as a medium of exchange.
+
+Relationships:
+(currency)-[acts_as]->(medium_of_exchange)
+(currency)-[may_act_as]->(store_of_value)
+```
+
+The default configuration uses `gpt-3.5-turbo`, a temperature of `0.8`, and a maximum response length of `1,000` tokens. The model name can be selected through the command line or environment.
+
+### 3. Parse and save article-level results
+
+`parse_answer()` separates summary text from relationship lines. `parse_relationships()` matches each complete triple, preserving hyphens in terms such as `short-term_debt` and normalizing surrounding whitespace.
+
+The pipeline saves each processed article as one JSONL record, including its summary, parsed triples, original response, and source metadata. It also collects the triples into a dataset-level JSON file.
+
+### 4. Store the knowledge graph
+
+The graph writer maps each triple to two entity nodes and one directed relationship. Parameterized Cypher queries bind entity names and relationship values, and `MERGE` reuses matching records.
+
+### 5. Group related relationship text
+
+The clustering module converts a triple into text, for example:
+
+```text
+currency acts_as medium_of_exchange
+```
+
+It then applies:
+
+1. **CountVectorizer** to create term-count vectors.
+2. **TfidfTransformer** to weight terms across the relationship collection.
+3. **KMeans** to group similar vectors, using `random_state=42` and `n_init=10`.
+
+The requested cluster count is capped at the number of distinct relationship strings. For each cluster, the highest-weight centroid term becomes its exported keyword. Cluster IDs describe the computed groups; their keywords and member relationships provide the interpretation.
+
+## Knowledge Graph Model
+
+The graph represents financial concepts as nodes and semantic connections as directed edges.
+
+| Element | Representation | Example |
+|---|---|---|
+| Node label | `Entity` | A financial concept |
+| Node property | `name` | `currency` |
+| Edge label | `RELATION` | A directed connection |
+| Edge property | `type` | `acts_as` |
+
+For the triple:
+
+```text
+(currency)-[acts_as]->(medium_of_exchange)
+```
+
+Neo4j stores the following structure:
 
 ```cypher
-(a:Entity {name: ...})-[r:RELATION {type: ...}]->(b:Entity {name: ...})
+(:Entity {name: 'currency'})
+  -[:RELATION {type: 'acts_as'}]->
+(:Entity {name: 'medium_of_exchange'})
 ```
 
-## 修正范围
+Entity identity is based on the stored `name`. A relationship is matched by its endpoints, direction, and `type` property. Article provenance lives in the exported article records, where each article retains its URL and associated relationships. The frontend uses that association to connect graph exploration with source reading.
 
-- 修复根目录输入路径、空 API 配置和未关闭客户端。
-- 两类网页正文统一放在 `Content`，修复 Investopedia 回退返回字符串的问题。
-- 摘要不再无条件删除首行；关系支持金融术语中的连字符。
-- 非法关系发出警告并跳过，不再导致整批解析崩溃。
-- 删除破坏 `profit` 等词语的全局 `of` 替换。
-- 聚类关键词与关系分配分别导出，避免覆盖；固定随机种子便于复现。
-- 去掉主流程中无用的 Notebook 表达式和重复处理分支。
-- 恢复 HTTPS 证书验证，并让 HTTP 错误直接报错。
+### Example Cypher queries
 
-维持简单串行流程。没有新增自动恢复、缓存、并发、实体消歧或质量评分。网络、模型和数据库错误仍会直接抛出；已处理文章会留在 JSONL 中，但不实现断点续跑。网页结构变化、文章超过模型上下文、模型返回不符合格式的内容仍需实际排查。
+Explore the graph:
 
-## 测试
+```cypher
+MATCH (a:Entity)-[r:RELATION]->(b:Entity)
+RETURN a, r, b
+LIMIT 100;
+```
+
+Find the outgoing relationships of currency:
+
+```cypher
+MATCH (a:Entity {name: 'currency'})-[r:RELATION]->(b:Entity)
+RETURN a.name AS source, r.type AS relationship, b.name AS target;
+```
+
+Find concepts involved in dependency relationships:
+
+```cypher
+MATCH (a:Entity)-[r:RELATION {type: 'depends_on'}]->(b:Entity)
+RETURN a.name AS concept, collect(b.name) AS dependencies;
+```
+
+## Run with Live Article Sources
+
+### Configure the model
+
+Export your API credentials in the shell that runs the pipeline:
+
+```bash
+export OPENAI_API_KEY='your-api-key'
+export OPENAI_MODEL='gpt-3.5-turbo'
+```
+
+For a compatible API endpoint, also set `OPENAI_BASE_URL` to its base URL. Choose a model supporting the Chat Completions request parameters used in `financial_kg/extraction.py`.
+
+Run the three example URLs and export the results:
+
+```bash
+python -m financial_kg \
+  --sources examples/data_sources.csv \
+  --clusters 3 \
+  --skip-neo4j
+```
+
+### Connect Neo4j
+
+Set the connection details for your Neo4j instance. For an instance listening on port `7687`:
+
+```bash
+export NEO4J_URI='bolt://localhost:7687'
+export NEO4J_USER='neo4j'
+export NEO4J_PASSWORD='your-database-password'
+```
+
+Run the full source collection:
+
+```bash
+python -m financial_kg --sources data_Sources.csv --clusters 10
+```
+
+The pipeline exports article and relationship files, writes triples to Neo4j, and saves cluster results. Open **Local results** in the frontend to explore the exports, or use the Cypher queries above in Neo4j Browser.
+
+### Configuration reference
+
+| Environment variable | Purpose | Default |
+|---|---|---|
+| `OPENAI_API_KEY` | Authentication for live extraction | Supplied by the user |
+| `OPENAI_MODEL` | Default model name | `gpt-3.5-turbo` |
+| `OPENAI_BASE_URL` | Base URL for the model client | SDK default endpoint |
+| `NEO4J_URI` | Neo4j connection URI | `bolt://localhost:8888` |
+| `NEO4J_USER` | Neo4j username | `financial` |
+| `NEO4J_PASSWORD` | Neo4j password | Supplied by the user |
+
+| Command-line option | Purpose | Default |
+|---|---|---|
+| `--sources PATH` | Source CSV | Project-root `data_Sources.csv` |
+| `--output-dir PATH` | Export directory | Project-root `results/` |
+| `--model NAME` | Model for live extraction | `OPENAI_MODEL` or `gpt-3.5-turbo` |
+| `--clusters N` | Requested KMeans cluster count | `10` |
+| `--delay SECONDS` | Delay between source requests | `5` |
+| `--limit N` | Process the first N input records | All records |
+| `--skip-neo4j` | Run the file-export and clustering path | Graph writing enabled in live mode |
+| `--example` | Process the bundled example responses | Live extraction mode |
+
+Default file paths are resolved relative to the project directory. Relative paths supplied explicitly on the command line are resolved from the current working directory. Reusing an output directory replaces its generated files; distinct directories can be used to retain separate runs.
+
+## Output Files and Data Contract
+
+| File | Format | Contents |
+|---|---|---|
+| `all_output.jsonl` | One JSON object per line | Article text, metadata, summary, relationships, and raw extraction response |
+| `relations.json` | JSON array | All `[source, relationship, target]` triples |
+| `cluster_keywords.csv` | CSV | `cluster_id` and its top `keyword` |
+| `relation_clusters.csv` | CSV | `cluster_id` and the corresponding relationship text |
+
+### Article record fields
+
+| Field | Meaning |
+|---|---|
+| `Entity` | Article subject derived from its source URL |
+| `Content` | Extracted article text |
+| `Source` | Source identifier, such as `wiki` or `investopedia` |
+| `URL` | Original article URL |
+| `Summary` | Article summary |
+| `Relationships` | List of three-element relationship arrays |
+| `RawAnswer` | Full extraction response used by the parser |
+| `Title` | Page title supplied by the Investopedia extractor |
+| `Related_Entities` | Additional text collected by the Wikipedia extractor |
+| `ExampleNote` | Provenance information attached to bundled examples |
+
+A relationship export uses this simple structure:
+
+```json
+[
+  ["currency", "acts_as", "medium_of_exchange"],
+  ["currency", "may_act_as", "store_of_value"],
+  ["total_interest", "depends_on", "principal"]
+]
+```
+
+These files form the interface between the Python pipeline and the browser application. They can also be loaded directly into notebooks or downstream data-processing scripts.
+
+## Development and Tests
+
+Run the Python regression suite:
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-测试覆盖解析错误、爬虫回退、Investopedia 单来源输入、小样本聚类、文件导出和数据库调用参数。外部服务在测试中使用替身，不表示已连通真实模型或数据库。
+The suite covers relationship parsing, heading-free responses, crawler fallbacks, source loading, small datasets, exported files, and parameterized Neo4j calls. Model and database adapters are exercised with controlled test doubles, while example parsing and clustering run on the bundled data.
 
-前端解析逻辑可用 Node 18+ 验证（仅开发测试需要，运行界面不需要）：
+Run frontend data-model tests with Node.js 18 or later:
 
 ```bash
 node --test tests/test_web.mjs
 ```
+
+These tests exercise the actual example exports, CSV parsing, relationship search, connected-component grouping, empty datasets, and source URL handling.
+
+### Working on individual stages
+
+- Adjust source extraction in `financial_kg/crawlers.py`.
+- Refine the LLM prompt and response parsing in `financial_kg/extraction.py`.
+- Extend graph operations in `financial_kg/graph.py`.
+- Experiment with relationship features and clustering in `financial_kg/clustering.py`.
+- Change frontend data handling in `web/model.mjs` and interactions in `web/app.js`.
+- Update visual styling and responsive layouts in `web/styles.css`.
+
+The modular structure keeps each part of the text-to-graph workflow easy to locate, inspect, and develop.
